@@ -1,0 +1,227 @@
+name: 🌍 Open Community + ProofLedger + Auto Discussion Enable
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  discussions: write
+  issues: write
+
+jobs:
+
+  community:
+    name: 📦 Ensure Community Standards
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-actions[bot]'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 🏗️ Create Missing Community Files
+        shell: bash
+        run: |
+          mkdir -p .github/ISSUE_TEMPLATE
+          echo "Checking community standard files..."
+
+          # README
+          if [ ! -f README.md ]; then
+            echo "# $(basename $GITHUB_REPOSITORY)" > README.md
+            echo "Auto-generated community standard README." >> README.md
+          fi
+
+          # LICENSE
+          if [ ! -f LICENSE ]; then
+            echo "MIT License" > LICENSE
+            echo "Copyright (c) $(date +%Y)" >> LICENSE
+          fi
+
+          # CoC
+          if [ ! -f CODE_OF_CONDUCT.md ]; then
+            printf "# Code of Conduct\nWe follow Contributor Covenant.\n" > CODE_OF_CONDUCT.md
+          fi
+
+          # CONTRIBUTING
+          if [ ! -f CONTRIBUTING.md ]; then
+            printf "# Contributing\nAuto-updated by workflow.\n" > CONTRIBUTING.md
+          fi
+
+          # SECURITY
+          if [ ! -f SECURITY.md ]; then
+            printf "# Security Policy\nReport vulnerabilities privately.\n" > SECURITY.md
+          fi
+
+          # Bug template
+          if [ ! -f .github/ISSUE_TEMPLATE/bug_report.md ]; then
+            printf -- "---\nname: 🐞 Bug Report\nabout: Report a problem\nlabels: bug\n---\n### Description\nIssue details\n" > .github/ISSUE_TEMPLATE/bug_report.md
+          fi
+
+          # PR template
+          if [ ! -f .github/PULL_REQUEST_TEMPLATE.md ]; then
+            printf "# 🧩 Pull Request\n## Summary\n## Checks\n- [ ] ProofLedger updated\n" > .github/PULL_REQUEST_TEMPLATE.md
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add README.md LICENSE CODE_OF_CONDUCT.md CONTRIBUTING.md SECURITY.md .github
+          git diff --staged --quiet || git commit -m "chore: Auto ensure community standard files"
+          git push origin main || echo "Nothing to push"
+
+  proofledger:
+    name: 🧾 ProofLedger Update
+    runs-on: ubuntu-latest
+    needs: community
+    if: github.actor != 'github-actions[bot]'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 🔒 Append ProofLedger Entry
+        shell: bash
+        run: |
+          mkdir -p proofledger
+          {
+            echo "Commit SHA: $GITHUB_SHA"
+            echo "Author: $GITHUB_ACTOR"
+            echo "Repo: $GITHUB_REPOSITORY"
+            echo "Timestamp: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+            echo "SHA256: $(git rev-parse HEAD | sha256sum | cut -d' ' -f1)"
+            echo "--------------------------------------"
+          } >> proofledger/proofledger.txt
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add proofledger/proofledger.txt
+          git commit -m "chore: Update ProofLedger for $GITHUB_SHA" || echo "No new ledger entry"
+          git push origin main || echo "Push skipped"
+
+  enable-discussions:
+    name: ⚙️ Enable Discussions Automatically
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-actions[bot]'
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const [owner, repo] = process.env.GITHUB_REPOSITORY.split("/");
+
+            // Try enabling discussions
+            try {
+              await github.request("PATCH /repos/{owner}/{repo}", {
+                owner,
+                repo,
+                has_discussions: true
+              });
+              console.log("Discussions enabled.");
+            } catch (_) {
+              console.log("Enable failed (permissions). Skipping.");
+            }
+
+            // Check category
+            const repoData = await github.graphql(`
+              query($owner:String!, $repo:String!) {
+                repository(owner:$owner, name:$repo) {
+                  id
+                  discussionCategories(first:20){nodes{id name}}
+                }
+              }`,
+              { owner, repo }
+            );
+
+            const general = repoData.repository.discussionCategories.nodes.find(c => c.name === "General");
+            if (general) return;
+
+            // Create General
+            try {
+              await github.graphql(`
+                mutation($repoId:ID!) {
+                  createDiscussionCategory(input:{
+                    repositoryId:$repoId,
+                    name:"General",
+                    description:"General discussions"
+                  }){discussionCategory{id}}
+                }`,
+                { repoId: repoData.repository.id }
+              );
+              console.log("General category created.");
+            } catch (e) {
+              console.log("Category creation failed:", e.message);
+            }
+
+  discussion:
+    name: 💬 Create Discussion for Commit
+    runs-on: ubuntu-latest
+    needs: enable-discussions
+    if: github.actor != 'github-actions[bot]'
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require("fs");
+
+            const [owner, repo] = process.env.GITHUB_REPOSITORY.split("/");
+            const sha = process.env.GITHUB_SHA;
+
+            const repoInfo = await github.graphql(`
+              query($owner:String!, $repo:String!){
+                repository(owner:$owner, name:$repo){
+                  id
+                  discussionCategories(first:20){nodes{id name}}
+                }
+              }`,
+              { owner, repo }
+            );
+
+            const category = repoInfo.repository.discussionCategories.nodes.find(c => c.name === "General");
+            if (!category) {
+              console.log("No General category. Skipping.");
+              return;
+            }
+
+            let message = "N/A";
+            try {
+              const raw = JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH));
+              if (raw.head_commit) message = raw.head_commit.message;
+            } catch (_) {}
+
+            const title = `🗣️ Commit Discussion — ${sha.slice(0, 7)}`;
+            const body = `Commit pushed by @${process.env.GITHUB_ACTOR}\n\n**Commit:** ${sha}\n\n**Message:** \`${message}\``;
+
+            const res = await github.graphql(`
+              mutation($repoId:ID!,$catId:ID!,$title:String!,$body:String!){
+                createDiscussion(input:{
+                  repositoryId:$repoId,
+                  categoryId:$catId,
+                  title:$title,
+                  body:$body
+                }){discussion{url}}
+              }`,
+              { repoId: repoInfo.repository.id, catId: category.id, title, body }
+            );
+
+            console.log("Discussion created:", res.createDiscussion.discussion.url);
+
+  issue:
+    name: 🪶 Auto Create Issue & Assign
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-actions[bot]'
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const commitMsg = context.payload.head_commit ? context.payload.head_commit.message : "Manual Trigger";
+            const sha = context.sha;
+            const actor = context.actor;
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🚀 Auto Update — ${commitMsg}`,
+              body: `Commit pushed by @${actor}\n\n**SHA:** \`${sha}\`\n\nAuto issue.`,
+              labels: ["automation", "proofledger"],
+              assignees: [actor]
+            });
