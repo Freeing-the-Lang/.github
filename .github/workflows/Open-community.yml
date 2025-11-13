@@ -29,6 +29,8 @@ jobs:
           if [ ! -f README.md ]; then
             echo "# $(basename $GITHUB_REPOSITORY)" > README.md
             echo "Auto-generated community standard README." >> README.md
+            echo "" >> README.md
+            echo "⚠️ **This project is not actively maintained. Anyone may freely adopt, fork, or take over.**" >> README.md
           fi
 
           # LICENSE
