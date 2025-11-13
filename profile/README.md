@@ -38,3 +38,6 @@ Everything is unified under one concept:
 
 각 리포는 따로 보이지만, 전부 같은 생태계의 일부다.  
 Each repo looks separate, but all belong to the same system.
+
+---
+*Auto-updated:* 2025-11-13 09:05:39 UTC
