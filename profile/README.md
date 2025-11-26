@@ -1,46 +1,21 @@
-# 🌐 Multi-layer-language + Language Pipeline  
-# 🌐 멀티 레이어 언어 + 언어 파이프라인
+Why I do these multi-language Experiment?
 
-여기는 여러 언어를 계층으로 나누고,  
-의미 → 구문 → VM → 백엔드로 흐르는 파이프라인 방식으로 조립하는 실험 생태계다.  
-This ecosystem splits languages into layers and connects them as a pipeline,  
-flowing through Meaning → Syntax → VM → Backend.
+-The reason is the modern-oreinted previous system and architecture are too heavy to use. 
+Somewhom might says, "Those things are not heavy, you not use those full features, so that you to avoid your not 
+familiar to this architectures and this API and more." : These saying make me uncomfortable, 
+However, the which ones are also right answer. When I use these all features, I don't make all of so lot of repositories 
+to experiment thems. Then, Why the Same things of the all of the repositories of the this organization?
+This is the meaning-based(Sponge-lang), eliminated or changing features and combined. And also, the directly translate 
+into the assembly code or IR code of the virtual machines(DOTNET, LLVM, JVM). 
 
-각 리포는 하나의 레이어이거나 파이프 단계다.  
-Each repository is either a layer or a pipeline stage.
+Then why the directly print-out the assembly or IR code? Thats because the programming language is the just tool of how the 
+more easier to use write the binaries. However, the Middle layers are grower and grower past the times. 
+I want to brake the chaining. 
 
-- Rust-like layer / Rust-like 계층  
-- Go-like layer / Go-like 계층  
-- Ruby-like layer / Ruby-like 계층  
-- Haskell-like layer / Haskell-like 계층  
-- Swift-like layer / Swift-like 계층  
-- JVM-free layer / JVM-free 계층  
-- Heap-Hop / All-is-Heap meaning layer / 힙 기반 의미 계층  
-- Meaning-level VM / 의미 기반 VM  
-- Lazy / Hybrid VM / 지연·하이브리드 VM  
-- Pure-Rust-No-LLVM backend / LLVM 없는 Rust 기반 백엔드  
-- C++ / NASM pipeline / C++·NASM 파이프라인  
-- ProofLedger stage / 빌드 증명 레이어
+Then, Why I think those things? Because of the "cargo --update" after affection. Why this? The Rust programming language is safe langugage. 
+However, they eliminate the ladder from the previous things. Thats why? The LLVM, might be. 
+Then, I thought, "What if the LLVM eliminated in my-version rust? Immediately print the assembly and assemble with the nasm or assemblers?
+That's why not? Rust says, "I am the system programming lanugage", However, the middle layer(LLVM) is too huge and Rust itself directly not output the assembly codes(Hardware-immeditely connected), such then, the is all right to the saying the rust the system language? I think it is not.
 
-언어는 단일이 아니라 조합으로 만든다.  
-A language here is not singular — it is a combination.
+And plus, many languages translate into meaning-levels is still experimental features. 
 
-Rust → Go → C++ → NASM 같은 조합도 되고,  
-Pipelines like **Rust → Go → C++ → NASM** work,  
-Ruby → Meaning → Heap VM 같은 구조도 그대로 흐른다.  
-and **Ruby → Meaning → Heap VM** also flows as-is.
-
-전체 개념은 하나로 묶인다:  
-Everything is unified under one concept:
-
-# **Multi-layer Language Pipeline (MLLP)**  
-# **멀티 레이어 언어 파이프라인 (MLLP)**
-
-각 리포는 따로 보이지만, 전부 같은 생태계의 일부다.  
-Each repo looks separate, but all belong to the same system.
-
----
-*Auto-updated:* 2025-11-13 09:05:39 UTC
-
----
-*Auto-updated:* 2025-11-13 09:06:16 UTC
