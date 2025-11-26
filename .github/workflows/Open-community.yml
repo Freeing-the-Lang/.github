@@ -233,14 +233,13 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: 📝 Override Organization Profile README with Original Text
-        shell: bash
         run: |
           mkdir -p profile
           PROFILE_FILE="profile/README.md"
 
           echo "Overwriting organization profile..."
 
-          cat > $PROFILE_FILE << 'EOF'
+          cat > $PROFILE_FILE <<EOF
 # Freeing-the-Lang
 
 Why I do these multi-language Experiment?
