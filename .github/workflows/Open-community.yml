@@ -110,7 +110,6 @@ jobs:
           script: |
             const [owner, repo] = process.env.GITHUB_REPOSITORY.split("/");
 
-            // Try enabling discussions
             try {
               await github.request("PATCH /repos/{owner}/{repo}", {
                 owner,
@@ -122,7 +121,6 @@ jobs:
               console.log("Enable failed (permissions). Skipping.");
             }
 
-            // Check category
             const repoData = await github.graphql(`
               query($owner:String!, $repo:String!) {
                 repository(owner:$owner, name:$repo) {
@@ -136,7 +134,6 @@ jobs:
             const general = repoData.repository.discussionCategories.nodes.find(c => c.name === "General");
             if (general) return;
 
-            // Create General
             try {
               await github.graphql(`
                 mutation($repoId:ID!) {
@@ -235,35 +232,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 📝 Generate or Update Organization Profile README
+      - name: 📝 Override Organization Profile README with Original Text
         shell: bash
         run: |
           mkdir -p profile
-
           PROFILE_FILE="profile/README.md"
-          echo "Updating organization profile..."
 
-          if [ ! -f "$PROFILE_FILE" ]; then
-            echo "# Freeing-the-Lang" > $PROFILE_FILE
-            echo "🌐 Automated multi-language experimental ecosystem." >> $PROFILE_FILE
-            echo "" >> $PROFILE_FILE
-            echo "This organization is fully automated using GitHub Actions:" >> $PROFILE_FILE
-            echo "- Community Standards Auto-managed" >> $PROFILE_FILE
-            echo "- ProofLedger Written for Every Commit" >> $PROFILE_FILE
-            echo "- Discussions Auto-generated" >> $PROFILE_FILE
-            echo "- Issues Auto-generated" >> $PROFILE_FILE
-            echo "- Free-to-Adopt Projects" >> $PROFILE_FILE
-            echo "" >> $PROFILE_FILE
-            echo "⚠️ **This organization is not actively maintained. Anyone may freely adopt or fork any project.**" >> $PROFILE_FILE
-          else
-            echo "" >> $PROFILE_FILE
-            echo "---" >> $PROFILE_FILE
-            echo "*Auto-updated:* $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $PROFILE_FILE
-          fi
+          echo "Overwriting organization profile..."
+
+          cat > $PROFILE_FILE << 'EOF'
+# Freeing-the-Lang
+
+Why I do these multi-language Experiment?
+
+-The reason is the modern-oreinted previous system and architecture are too heavy to use. Somewhom might says, "Those things are not heavy, you not use those full features, so that you to avoid your not familiar to this architectures and this API and more." : These saying make me uncomfortable, However, the which ones are also right answer. When I use these all features, I don't make all of so lot of repositories to experiment thems. Then, Why the Same things of the all of the repositories of the this organization? This is the meaning-based(Sponge-lang), eliminated or changing features and combined. And also, the directly translate into the assembly code or IR code of the virtual machines(DOTNET, LLVM, JVM).
+
+Then why the directly print-out the assembly or IR code? Thats because the programming language is the just tool of how the more easier to use write the binaries. However, the Middle layers are grower and grower past the times. I want to brake the chaining.
+
+Then, Why I think those things? Because of the "cargo --update" after affection. Why this? The Rust programming language is safe langugage. However, they eliminate the ladder from the previous things. Thats why? The LLVM, might be. Then, I thought, "What if the LLVM eliminated in my-version rust? Immediately print the assembly and assemble with the nasm or assemblers? That's why not? Rust says, "I am the system programming lanugage", However, the middle layer(LLVM) is too huge and Rust itself directly not output the assembly codes(Hardware-immeditely connected), such then, the is all right to the saying the rust the system language? I think it is not.
+
+And plus, many languages translate into meaning-levels is still experimental features.
+EOF
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           git add profile/README.md
-          git diff --staged --quiet || git commit -m "chore: Auto-update organization profile README"
+          git diff --staged --quiet || git commit -m "chore: Override org profile README with original text"
           git push origin main || echo "Nothing to push"
